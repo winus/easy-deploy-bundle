@@ -407,7 +407,16 @@ abstract class DefaultDeployer extends AbstractDeployer
 
         $this->log('<h2>Resetting the OPcache contents</>');
         $phpScriptPath = sprintf('__easy_deploy_opcache_reset_%s.php', bin2hex(random_bytes(8)));
-        $this->runRemote(sprintf('echo "<?php opcache_reset();" > {{ web_dir }}/%s && wget %s/%s && rm -f {{ web_dir }}/%s', $phpScriptPath, $homepageUrl, $phpScriptPath, $phpScriptPath));
+        if (null === $hostname = $this->getConfig(Option::resetOpCacheHostname)) {
+            /**
+             * When no hostname set, for BC, run old command
+             */
+            $this->runRemote(sprintf('echo "<?php opcache_reset();" > {{ web_dir }}/%s && wget %s/%s && rm -f {{ web_dir }}/%s', $phpScriptPath, $homepageUrl, $phpScriptPath, $phpScriptPath));
+        }else{
+            $this->runRemote(sprintf('echo "<?php opcache_reset();" > {{ web_dir }}/%s && wget %s/%s --header "Host: %s" && rm -f {{ web_dir }}/%s',
+                $phpScriptPath, $homepageUrl, $phpScriptPath, $hostname, $phpScriptPath));
+        }
+
     }
 
     private function doKeepReleases(): void
